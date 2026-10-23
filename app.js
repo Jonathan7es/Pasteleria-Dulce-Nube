@@ -142,7 +142,7 @@ $("#cart-foot").hidden = true; return;
 $("#cart-foot").hidden = false;
 Object.keys(cart).forEach(function (id) {
 var it = byId[id], q = cart[id];
-var src = $('.pc[data-id="' + id + '"] .im svg');
+var src = $('.pc[data-id="' + id + '"] .im img') || $('.pc[data-id="' + id + '"] .im svg');
 var ti = h("div", { class: "ti" }); if (src) { ti.appendChild(src.cloneNode(true)); }
 var minus = h("button", { type: "button", "aria-label": "Quitar " + (it.u === "kg" ? "medio kilo" : "uno"), text: "−" });
 var plus = h("button", { type: "button", "aria-label": "Añadir " + (it.u === "kg" ? "medio kilo" : "uno"), text: "+" });
@@ -251,8 +251,10 @@ out.appendChild(left); out.appendChild(right); return out;
 M.tarta = function (c) {
 var st = { size: c.sizes[1], fl: c.flavors[0], fill: c.fills[0], txt: "", date: "" };
 var out = h("div", { class: "two" });
-var pre = h("div", { class: "pre", style: "--tint:" + st.fl.c }), svgBox = h("div", { html: S.art.tarta });
-pre.appendChild(svgBox);
+var pre = h("div", { class: "pre", style: "--tint:" + st.fl.c }), svgBox = h("div", { html: S.art.tarta || "" });
+var pic = st.fl.img ? h("img", { class: "pre-cut", src: st.fl.img, alt: "Tarta de " + st.fl.l, width: 600, height: 600 }) : null;
+pre.appendChild(pic || svgBox);
+c.flavors.forEach(function (f) { if (f.img) { new Image().src = f.img; } });
 var left = h("div", { class: "stp" });
 var g1 = group("Raciones"), g2 = group("Sabor del bizcocho"), g3 = group("Relleno");
 left.appendChild(g1.box); left.appendChild(g2.box); left.appendChild(g3.box);
@@ -270,6 +272,7 @@ function price() { return Math.round(st.size.p * (st.fl.m || 1) + (st.fill.x || 
 function upd(bump) {
 res.textContent = ""; res.appendChild(h("div", {}, [h("small", { text: st.size.l + " · " + st.fl.l + " · " + st.fill.l }), h("small", { text: "Precio orientativo (se confirma al encargar)" })])); res.appendChild(h("b", { text: eur(price()) }));
 pre.style.setProperty("--tint", st.fl.c);
+if (pic && pic.getAttribute("src") !== st.fl.img) { pic.classList.add("out"); setTimeout(function () { pic.src = st.fl.img; pic.alt = "Tarta de " + st.fl.l; pic.classList.remove("out"); }, 200); }
 var s = $("svg", svgBox); if (s) { s.style.filter = "hue-rotate(" + (st.fl.h || 0) + "deg) saturate(" + (st.fl.sat || 1) + ")"; }
 if (bump) { pre.classList.add("bump"); setTimeout(function () { pre.classList.remove("bump"); }, 280); }
 }
@@ -416,7 +419,7 @@ function upd() {
 val.textContent = st.n; list.textContent = ""; var tot = 0;
 c.parts.forEach(function (p) {
 var it = byId[p.id], q = qty(p); tot += q * it.p;
-var im = $('.pc[data-id="' + p.id + '"] .im svg');
+var im = $('.pc[data-id="' + p.id + '"] .im img') || $('.pc[data-id="' + p.id + '"] .im svg');
 list.appendChild(h("div", { class: "hr", style: "grid-template-columns:56px 1fr auto" }, [h("div", { style: "width:48px", html: im ? im.outerHTML : "" }), h("div", {}, [h("b", { text: it.n }), h("small", { text: " " + p.why, style: "display:block;color:var(--mute)" })]), h("em", { text: qtyLabel(it, q) })]));
 });
 res.textContent = ""; res.appendChild(h("div", {}, [h("small", { text: "Total aproximado" }), h("small", { text: "Cantidades orientativas" })])); res.appendChild(h("b", { text: eur(tot) }));
@@ -427,6 +430,17 @@ go.addEventListener("click", function () { c.parts.forEach(function (p) { cart[p
 upd();
 out.appendChild(left); out.appendChild(list); return out;
 };
+/* ---------- Vídeos: solo se reproducen mientras se ven (y nunca con ahorro de datos) ---------- */
+var vids = $$("video[data-auto]"), lowData = navigator.connection && navigator.connection.saveData;
+if (vids.length && "IntersectionObserver" in window && !lowData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+var vo = new IntersectionObserver(function (es) {
+es.forEach(function (e) {
+var v = e.target;
+if (e.isIntersecting) { var p = v.play(); if (p && p.catch) { p.catch(function () {}); } } else { v.pause(); }
+});
+}, { threshold: 0.35 });
+vids.forEach(function (v) { v.addEventListener("playing", function () { v.classList.add("on"); }); vo.observe(v); });
+}
 if (mod && S.module && M[S.module.type]) { mod.appendChild(M[S.module.type](S.module)); }
 var mod2 = $("#mod2"); if (mod2 && S.module2 && M[S.module2.type]) { mod2.appendChild(M[S.module2.type](S.module2)); }
 })();
